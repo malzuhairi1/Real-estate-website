@@ -5,6 +5,33 @@ const year = document.querySelector('[data-year]');
 const messageToggle = document.querySelector('[data-message-toggle]');
 const contactForms = document.querySelectorAll('[data-contact-form]');
 
+// Sends engagement events to Google Analytics if it has loaded
+const trackEvent = (name, params = {}) => {
+    if (typeof window.gtag === 'function') {
+        window.gtag('event', name, params);
+    }
+};
+
+document.addEventListener('click', (event) => {
+    const link = event.target instanceof Element ? event.target.closest('a') : null;
+
+    if (!link) {
+        return;
+    }
+
+    const href = link.getAttribute('href') || '';
+
+    if (href.startsWith('tel:')) {
+        trackEvent('phone_call_click', { link_text: link.textContent.trim() });
+    } else if (href.includes('linkedin.com')) {
+        trackEvent('linkedin_click', { link_url: href });
+    } else if (href.startsWith('mailto:')) {
+        trackEvent('email_click', { link_text: link.textContent.trim() });
+    } else if (nav && nav.contains(link)) {
+        trackEvent('nav_click', { link_text: link.textContent.trim() });
+    }
+});
+
 if (year) {
     year.textContent = new Date().getFullYear();
 }
@@ -127,12 +154,15 @@ contactForms.forEach((form) => {
                 status.textContent = 'Thanks - your message was sent. I will get back to you directly.';
                 status.classList.add('is-success');
             }
+
+            trackEvent('contact_form_submit', { form_id: form.id || undefined });
         } catch (error) {
             if (status) {
                 status.textContent = 'I could not send this automatically, so your email app is opening with the message filled in.';
                 status.classList.add('is-error');
             }
 
+            trackEvent('contact_form_fallback', { form_id: form.id || undefined });
             window.location.href = buildMailtoFallback(formData);
         } finally {
             if (submitButton) {
