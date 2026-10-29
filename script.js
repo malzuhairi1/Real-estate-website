@@ -2,7 +2,9 @@ const header = document.querySelector('[data-header]');
 const nav = document.querySelector('[data-nav]');
 const navToggle = document.querySelector('[data-nav-toggle]');
 const year = document.querySelector('[data-year]');
-const messageToggle = document.querySelector('[data-message-toggle]');
+const revealItems = document.querySelectorAll('[data-reveal]');
+const parallaxImage = document.querySelector('[data-parallax]');
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const contactForms = document.querySelectorAll('[data-contact-form]');
 
 // Sends engagement events to Google Analytics if it has loaded
@@ -47,6 +49,12 @@ const setHeaderState = () => {
 setHeaderState();
 window.addEventListener('scroll', setHeaderState, { passive: true });
 
+const closeNav = () => {
+    nav.classList.remove('is-open');
+    navToggle.setAttribute('aria-expanded', 'false');
+    navToggle.setAttribute('aria-label', 'Open navigation');
+};
+
 if (nav && navToggle) {
     navToggle.addEventListener('click', () => {
         const isOpen = nav.classList.toggle('is-open');
@@ -56,32 +64,61 @@ if (nav && navToggle) {
 
     nav.addEventListener('click', (event) => {
         if (event.target instanceof HTMLAnchorElement) {
-            nav.classList.remove('is-open');
-            navToggle.setAttribute('aria-expanded', 'false');
-            navToggle.setAttribute('aria-label', 'Open navigation');
+            closeNav();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && nav.classList.contains('is-open')) {
+            closeNav();
+            navToggle.focus();
         }
     });
 }
 
-if (messageToggle) {
-    messageToggle.addEventListener('click', () => {
-        const formId = messageToggle.getAttribute('aria-controls');
-        const form = formId ? document.getElementById(formId) : null;
+// Staggers sibling elements so they fade in one after another
+revealItems.forEach((item) => {
+    const siblings = Array.from(item.parentElement.children).filter((child) => child.hasAttribute('data-reveal'));
+    const index = siblings.indexOf(item);
 
-        if (!form) {
-            return;
+    if (index > 0) {
+        item.style.setProperty('--delay', `${Math.min(index, 5) * 0.09}s`);
+    }
+});
+
+if ('IntersectionObserver' in window && !prefersReducedMotion) {
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                revealObserver.unobserve(entry.target);
+            }
+        });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+
+    revealItems.forEach((item) => revealObserver.observe(item));
+} else {
+    revealItems.forEach((item) => item.classList.add('is-visible'));
+}
+
+if (parallaxImage && !prefersReducedMotion) {
+    let ticking = false;
+
+    const updateParallax = () => {
+        const rect = parallaxImage.parentElement.getBoundingClientRect();
+        const progress = (rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
+        parallaxImage.style.transform = `translate3d(0, ${progress * -6}%, 0)`;
+        ticking = false;
+    };
+
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            window.requestAnimationFrame(updateParallax);
+            ticking = true;
         }
+    }, { passive: true });
 
-        form.hidden = false;
-        messageToggle.setAttribute('aria-expanded', 'true');
-        messageToggle.hidden = true;
-
-        const firstField = form.querySelector('input:not([type="hidden"]), textarea');
-
-        if (firstField instanceof HTMLElement) {
-            firstField.focus();
-        }
-    });
+    updateParallax();
 }
 
 const getFormValue = (formData, key) => String(formData.get(key) || '').trim();
