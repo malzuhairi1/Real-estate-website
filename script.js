@@ -27,6 +27,8 @@ document.addEventListener('click', (event) => {
         trackEvent('phone_call_click', { link_text: link.textContent.trim() });
     } else if (href.includes('linkedin.com')) {
         trackEvent('linkedin_click', { link_url: href });
+    } else if (href.includes('instagram.com')) {
+        trackEvent('instagram_click', { link_url: href });
     } else if (href.startsWith('mailto:')) {
         trackEvent('email_click', { link_text: link.textContent.trim() });
     } else if (nav && nav.contains(link)) {
