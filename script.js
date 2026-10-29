@@ -25,6 +25,8 @@ document.addEventListener('click', (event) => {
 
     if (href.startsWith('tel:')) {
         trackEvent('phone_call_click', { link_text: link.textContent.trim() });
+    } else if (href.startsWith('sms:')) {
+        trackEvent('text_message_click', { link_text: link.textContent.trim() });
     } else if (href.includes('linkedin.com')) {
         trackEvent('linkedin_click', { link_url: href });
     } else if (href.includes('instagram.com')) {
